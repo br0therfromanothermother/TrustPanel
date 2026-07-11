@@ -1,0 +1,32 @@
+[Unit]
+# Operator panel (control plane): localhost HTTP API over Postgres; pushes
+# desired-state to node agents. Runs on the ACTIVE exit-candidate (variant A).
+# Requires a local/replicated Postgres. See the design spec §8/B1.
+Description=TrustPanel control plane (serve)
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=trustpanel
+Group=trustpanel
+# TRUSTPANEL_DSN must be set here (Postgres DSN of the local node).
+EnvironmentFile=/etc/trustpanel/serve.env
+ExecStart=/usr/local/bin/trustpanel serve \
+  --listen 127.0.0.1:8787 \
+  --migrations-dir /usr/local/share/trustpanel/migrations \
+  --ca-file /etc/trustpanel/pki/ca.crt \
+  --cert-file /etc/trustpanel/pki/controller.crt \
+  --key-file /etc/trustpanel/pki/controller.key \
+  --reconcile-interval 30s
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/log/trustpanel
+LogsDirectory=trustpanel
+
+[Install]
+WantedBy=multi-user.target

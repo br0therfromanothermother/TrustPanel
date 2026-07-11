@@ -1,0 +1,26 @@
+[Unit]
+# Camouflage fallback origin: serves a believable site to non-VPN probes/browsers
+# that TrustTunnel reverse-proxies on the same domain. ENTRY nodes only.
+# Stateless localhost service — runs under an ephemeral DynamicUser so a freshly
+# provisioned node needs no pre-created service account.
+Description=TrustPanel camouflage fallback origin
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+DynamicUser=yes
+# Install-time branding: the installer writes TRUSTPANEL_BRAND / TRUSTPANEL_DOMAIN
+# here so the camouflage site shows this deployment's name and domain. Optional;
+# defaults to ExampleCDN / example.com.
+EnvironmentFile=-/etc/trustpanel/fallback.env
+ExecStart=/usr/local/bin/trustpanel fallback --listen 127.0.0.1:8080
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

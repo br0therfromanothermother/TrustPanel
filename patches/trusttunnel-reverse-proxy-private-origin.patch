@@ -1,0 +1,73 @@
+diff --git a/lib/src/reverse_proxy.rs b/lib/src/reverse_proxy.rs
+index 0f28178..c755553 100644
+--- a/lib/src/reverse_proxy.rs
++++ b/lib/src/reverse_proxy.rs
+@@ -111,7 +111,7 @@ async fn handle_stream(
+     let (request, respond) = stream.split();
+     log_id!(trace, log_id, "Received request: {:?}", request.request());
+ 
+-    let forwarder = Box::new(TcpForwarder::new(context.clone()));
++    let forwarder = Box::new(TcpForwarder::new_for_trusted_destination(context.clone()));
+     let settings = context.settings.reverse_proxy.as_ref().unwrap();
+     let (mut server_source, mut server_sink) = forwarder
+         .connect(
+diff --git a/lib/src/tcp_forwarder.rs b/lib/src/tcp_forwarder.rs
+index 14f73b0..658616e 100644
+--- a/lib/src/tcp_forwarder.rs
++++ b/lib/src/tcp_forwarder.rs
+@@ -14,6 +14,7 @@ use tokio::net::TcpStream;
+ 
+ pub(crate) struct TcpForwarder {
+     context: Arc<core::Context>,
++    allow_private_destination: bool,
+ }
+ 
+ struct StreamRx {
+@@ -34,7 +35,17 @@ struct StreamTx {
+ 
+ impl TcpForwarder {
+     pub fn new(context: Arc<core::Context>) -> Self {
+-        Self { context }
++        Self {
++            context,
++            allow_private_destination: false,
++        }
++    }
++
++    pub fn new_for_trusted_destination(context: Arc<core::Context>) -> Self {
++        Self {
++            context,
++            allow_private_destination: true,
++        }
+     }
+ 
+     pub(crate) fn pipe_from_stream(
+@@ -69,6 +80,7 @@ impl TcpConnector for TcpForwarder {
+             TcpDestination::Address(peer) => {
+                 let peer_ip = peer.ip();
+                 if !self.context.settings.allow_private_network_connections
++                    && !self.allow_private_destination
+                     && !net_utils::is_global_ip(&peer_ip)
+                 {
+                     if peer_ip.is_loopback() {
+@@ -100,6 +112,7 @@ impl TcpConnector for TcpForwarder {
+                     }
+ 
+                     if net_utils::is_global_ip(&ip)
++                        || self.allow_private_destination
+                         || self.context.settings.allow_private_network_connections
+                     {
+                         status = Some(SelectionStatus::Suitable(a));
+diff --git a/lib/tests/reverse_proxy.rs b/lib/tests/reverse_proxy.rs
+index 3310e32..a34f9e6 100644
+--- a/lib/tests/reverse_proxy.rs
++++ b/lib/tests/reverse_proxy.rs
+@@ -263,7 +263,7 @@ async fn run_endpoint(endpoint_address: &SocketAddr, proxy_address: &SocketAddr)
+                 .build()
+                 .unwrap(),
+         )
+-        .allow_private_network_connections(true)
++        .allow_private_network_connections(false)
+         .build()
+         .unwrap();
+ 

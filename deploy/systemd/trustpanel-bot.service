@@ -1,0 +1,30 @@
+[Unit]
+# Operator Telegram management bot. Under variant A it runs on the ACTIVE
+# exit-candidate beside the panel and Postgres-primary and talks to the store
+# directly over localhost (the design spec §6/8c). This is the MANAGEMENT
+# channel; the watchdog's one-way alert bot is a separate unit/token and cannot
+# mutate state.
+Description=TrustPanel Telegram management bot
+After=network-online.target postgresql.service trustpanel-serve.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=trustpanel
+Group=trustpanel
+# The bot token + admin IDs are managed in the panel (Bots tab) and read from
+# the DB at runtime — no token file or flags needed. TRUSTPANEL_DSN comes from
+# serve.env; bot.env is optional (legacy flag overrides only). The bot idles
+# until a token is configured in the panel.
+EnvironmentFile=/etc/trustpanel/serve.env
+EnvironmentFile=-/etc/trustpanel/bot.env
+ExecStart=/usr/local/bin/trustpanel bot
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

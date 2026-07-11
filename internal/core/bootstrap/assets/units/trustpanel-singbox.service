@@ -1,0 +1,28 @@
+[Unit]
+# sing-box: the routing brain. On entry nodes it serves the local mixed inbound
+# (127.0.0.1:2080) that TrustTunnel forwards to and dials exits over VLESS+
+# Reality; on exit nodes it serves the Reality inbound (:443) + freedom egress.
+# Config is managed by the agent at /etc/trustpanel/singbox/sing-box.json.
+# Build sing-box with -tags "with_v2ray_api with_utls" (see the design spec A2).
+Description=TrustPanel sing-box (policy router / exit)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/etc/trustpanel/singbox
+ExecStart=/usr/local/bin/sing-box run -c /etc/trustpanel/singbox/sing-box.json
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/etc/trustpanel/singbox /var/lib/trustpanel-singbox /var/log/trustpanel
+StateDirectory=trustpanel-singbox
+LogsDirectory=trustpanel
+
+[Install]
+WantedBy=multi-user.target

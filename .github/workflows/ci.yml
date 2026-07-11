@@ -1,0 +1,53 @@
+name: ci
+
+# Build, vet, and run the full test suite (including the Postgres-integration
+# tests for store/panel/authz/controller/backup) on every push and PR. These
+# tests SKIP silently without a DSN, so CI provides a real Postgres service and
+# passes TRUSTPANEL_TEST_DSN in **keyword form** — the URL form makes the pgx
+# tests skip silently and masks failures.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: trustpanel_test
+        ports:
+          - 5432:5432
+        # Wait until Postgres is accepting connections before the job starts.
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # Keyword form is required — the tests create per-package databases off this
+      # base DSN (must reach a superuser that can CREATE DATABASE).
+      TRUSTPANEL_TEST_DSN: "host=127.0.0.1 port=5432 user=postgres password=postgres dbname=trustpanel_test sslmode=disable"
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: go vet
+        run: go vet ./...
+      - name: go build
+        run: go build ./...
+      - name: go test
+        run: go test -count=1 ./...

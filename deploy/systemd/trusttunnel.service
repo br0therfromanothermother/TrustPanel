@@ -1,0 +1,26 @@
+[Unit]
+# TrustTunnel endpoint: the user-facing camouflaged TLS front on entry nodes.
+# Terminates users on :443, forwards to the local sing-box (127.0.0.1:2080), and
+# reverse-proxies browser traffic to the local fallback origin. Config managed
+# by the agent at /etc/trusttunnel. ENTRY nodes only.
+Description=TrustTunnel endpoint
+After=network-online.target trustpanel-singbox.service trustpanel-fallback.service
+Wants=network-online.target trustpanel-singbox.service trustpanel-fallback.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/etc/trusttunnel
+ExecStart=/opt/trusttunnel/trusttunnel_endpoint vpn.toml hosts.toml
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/etc/trusttunnel /var/log/trustpanel
+LogsDirectory=trustpanel
+
+[Install]
+WantedBy=multi-user.target
