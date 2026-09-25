@@ -1,0 +1,10 @@
+[Unit]
+Description=TrustPanel verify-restore trigger (cadence set in the panel)
+
+[Timer]
+OnCalendar=*-*-* 04:30:00
+RandomizedDelaySec=20m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

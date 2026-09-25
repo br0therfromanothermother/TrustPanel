@@ -1,0 +1,15 @@
+[Unit]
+# Scopes this node's mTLS control port (:8443) to the control-plane source IPs
+# the panel pushes to /etc/trustpanel/singbox/control-allow.conf. Fail-open: a
+# missing or empty list leaves the port open. Runs as root (it drives ufw) and
+# is triggered by trustpanel-firewall.timer.
+Description=TrustPanel control-port firewall
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/trustpanel firewall --allow /etc/trustpanel/singbox/control-allow.conf --port 8443
+
+[Install]
+WantedBy=multi-user.target

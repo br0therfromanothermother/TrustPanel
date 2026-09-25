@@ -1,0 +1,36 @@
+[Unit]
+# Variant-A mutual watchdog: watches the peer exit-candidate and alerts an
+# operator (one-way) so they can run `trustpanel promote`. Runs on BOTH
+# exit-candidates. Never promotes automatically. See the design spec §8c/O3.
+Description=TrustPanel watchdog
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=trustpanel
+Group=trustpanel
+# Set the peer to watch and the alert channel here, e.g.:
+#   TRUSTPANEL_WATCH_TCP=<peer-ip>:5432   (peer Postgres replication port)
+#   TRUSTPANEL_TARGET=<peer-node-id>
+#   TRUSTPANEL_DEADMAN_DSN=<local replica DSN>   (enables the dead-man cross-check
+#                          AND lets β resolve live alert creds off the replica)
+#   TRUSTPANEL_ALERT_TG_TOKEN=...  TRUSTPANEL_ALERT_CHAT_ID=...  (optional fallback)
+EnvironmentFile=/etc/trustpanel/watchdog.env
+ExecStart=/usr/local/bin/trustpanel watchdog \
+  --target ${TRUSTPANEL_TARGET} \
+  --watch-tcp ${TRUSTPANEL_WATCH_TCP} \
+  --interval 30s \
+  --threshold 3 \
+  --deadman-dsn ${TRUSTPANEL_DEADMAN_DSN} \
+  --alert-telegram-token ${TRUSTPANEL_ALERT_TG_TOKEN} \
+  --alert-chat-id ${TRUSTPANEL_ALERT_CHAT_ID}
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

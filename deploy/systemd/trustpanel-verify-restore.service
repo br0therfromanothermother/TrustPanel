@@ -1,0 +1,13 @@
+[Unit]
+# Verify-restore drill: load the newest snapshot into a throwaway Postgres and
+# validate the PKI, proving the backup is restorable without touching the live
+# DB. Runs on the control-plane node and the standby (both produce snapshots),
+# triggered by trustpanel-verify-restore.timer. --scheduled self-gates on the
+# panel-configured interval/on-off read from the replicated settings.
+Description=TrustPanel verify-restore drill (restore newest backup into a throwaway Postgres)
+After=postgresql.service trustpanel-backup.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/trustpanel/serve.env
+ExecStart=/usr/local/bin/trustpanel verify-restore --scheduled --dir /var/backups/trustpanel

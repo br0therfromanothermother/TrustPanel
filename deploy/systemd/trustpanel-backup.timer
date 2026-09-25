@@ -1,0 +1,10 @@
+[Unit]
+Description=TrustPanel backup trigger (cadence set in the panel)
+
+[Timer]
+OnCalendar=*-*-* *:30:00
+RandomizedDelaySec=20m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

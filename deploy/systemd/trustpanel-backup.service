@@ -1,0 +1,14 @@
+[Unit]
+# Disaster-recovery snapshot: Postgres dump + fleet PKI (CA key) -> a single
+# 0600 tar.gz under /var/backups/trustpanel. Runs on the control-plane (exit)
+# node and the standby, triggered by trustpanel-backup.timer. Runs as root to
+# read the CA key. --scheduled self-gates: the binary reads the panel-configured
+# interval/retention/on-off from the replicated settings and only snapshots when
+# due, so one panel edit governs both nodes without touching systemd.
+Description=TrustPanel backup (Postgres + PKI)
+After=postgresql.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/trustpanel/serve.env
+ExecStart=/usr/local/bin/trustpanel backup --scheduled --out-dir /var/backups/trustpanel --pki-dir /etc/trustpanel/pki

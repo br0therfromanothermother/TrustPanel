@@ -1,0 +1,13 @@
+[Unit]
+# Re-applies the control-port allow-list shortly after boot and periodically, so
+# a pushed change (or a rule that drifted) converges without the agent driving
+# it. The apply is idempotent and fail-open.
+Description=TrustPanel control-port firewall (periodic apply)
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=5min
+Unit=trustpanel-firewall.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,36 @@
+[Unit]
+# Per-node agent: receives desired-state from the panel over mTLS, reconciles
+# config files + services. Runs on EVERY node. See the design spec §8.
+Description=TrustPanel node agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+# TRUSTPANEL_NODE_ID must be set here; it must match the node id in the panel.
+EnvironmentFile=/etc/trustpanel/agent.env
+ExecStart=/usr/local/bin/trustpanel agent \
+  --node-id ${TRUSTPANEL_NODE_ID} \
+  --listen 0.0.0.0:8443 \
+  --ca-file /etc/trustpanel/pki/ca.crt \
+  --cert-file /etc/trustpanel/pki/node.crt \
+  --key-file /etc/trustpanel/pki/node.key \
+  --state-file /var/lib/trustpanel-agent/state.json \
+  --roots /etc/trusttunnel,/etc/trustpanel/singbox \
+  --services trusttunnel.service,trustpanel-singbox.service \
+  --singbox-bin /usr/local/bin/sing-box \
+  --trusttunnel-bin /opt/trusttunnel/trusttunnel_endpoint
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/etc/trusttunnel /etc/trustpanel/singbox /var/lib/trustpanel-agent /var/log/trustpanel
+StateDirectory=trustpanel-agent
+LogsDirectory=trustpanel
+
+[Install]
+WantedBy=multi-user.target
